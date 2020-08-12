@@ -122,7 +122,9 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 		return 0, err
 	}
 
-	return 0, nil
+	s.logger.Debugf("Created chat (%s) with id %d", name, id)
+
+	return id, nil
 }
 
 func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text string) (int64, error) {
