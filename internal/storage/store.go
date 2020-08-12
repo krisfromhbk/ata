@@ -44,13 +44,11 @@ func New(logger *zap.SugaredLogger) (*Store, error) {
 }
 
 // CreateUser tries to insert user with specified username.
-// TODO change id type to int64 as bigserial is 8 bytes (https://www.postgresql.org/docs/current/datatype-numeric.html)
 // TODO think of using ON CONFLICT: https://postgrespro.ru/docs/postgresql/9.6/sql-insert#sql-on-conflict
-// TODO maybe https://github.com/jackc/pgtype provides better types for current package as it includes binary encoding
-func (s *Store) CreateUser(ctx context.Context, username string) (int, error) {
+func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) {
 	s.logger.Debugf("Creating user (%s)", username)
 
-	var id int
+	var id int64
 	sql := "insert into users (username, created_at) values ($1, $2) returning id"
 	err := s.db.QueryRow(ctx, sql, username, time.Now()).Scan(&id)
 	if err != nil {
