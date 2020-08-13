@@ -1,5 +1,8 @@
 package storage
 
+// TODO create models in storage package
+// TODO maybe https://github.com/jackc/pgtype provides better types for current package as it includes binary encoding
+
 import (
 	"context"
 	"encoding/json"
@@ -23,6 +26,7 @@ var (
 	ErrMessageBadAuthor = errors.New("bad author id")
 )
 
+// Store defines fields used in db interaction processes
 type Store struct {
 	logger *zap.SugaredLogger
 	db     *pgxpool.Pool
@@ -47,8 +51,7 @@ func New(logger *zap.SugaredLogger) (*Store, error) {
 	}, err
 }
 
-// CreateUser tries to insert user with specified username.
-// TODO think of using ON CONFLICT: https://postgrespro.ru/docs/postgresql/9.6/sql-insert#sql-on-conflict
+// CreateUser creates user and returns its id.
 func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) {
 	s.logger.Debugf("Creating user (%s)", username)
 
@@ -70,7 +73,9 @@ func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) 
 	return id, nil
 }
 
-// CreateChat performs two-step transaction: 1. insert chat record; 2. bulk insert on "chat-users" table
+// CreateChat performs two-step transaction to create chat
+// (1. insert chat record; 2. bulk insert on "chat-users" table) and returns its id
+// TODO decide whether several chats with same users possible (different chat names)
 func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int64, error) {
 	s.logger.Debugf("Creating chat (%s) with users (%v)", name, users)
 
@@ -133,6 +138,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 	return id, nil
 }
 
+// CreateMessage creates new message in database and returns its id
 func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text string) (int64, error) {
 	s.logger.Debugf("Creating message from user (id: %d) in chat (id: %d)", author, chat)
 
