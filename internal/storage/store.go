@@ -2,8 +2,10 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -13,8 +15,10 @@ import (
 
 var (
 	ErrUserExists       = errors.New("user already exists")
+	ErrUserNotExist     = errors.New("user does not exist")
 	ErrChatExists       = errors.New("chat already exists")
 	ErrChatBadUsers     = errors.New("bad users list")
+	ErrChatNotExist     = errors.New("chat does not exists")
 	ErrMessageBadChat   = errors.New("bad chat id")
 	ErrMessageBadAuthor = errors.New("bad author id")
 )
@@ -154,4 +158,160 @@ func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text stri
 	}
 
 	return id, nil
+}
+
+// ChatsByUserID returns a list of all chats with all fields, sorted by the time of the last message in the chat
+//(from latest to oldest)
+func (s *Store) ChatsByUserID(ctx context.Context, user int64) ([]Chat, error) {
+	s.logger.Debugf("Retrieving chats for user (id: %d)", user)
+
+	// check if user exists
+	var i int8
+	sql := "select 1 from users where id = $1"
+	err := s.db.QueryRow(ctx, sql, user).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotExist
+		}
+		return nil, err
+	}
+
+	type retrievedChat struct {
+		id        int64
+		name      string
+		users     pgtype.JSONBArray
+		createdAt time.Time
+	}
+
+	// TODO update sql to retrieve chats without messages ordered by creation time
+	sql = ` -- user chats ordered by last message
+			with user_chats as (
+				select chats.id, 
+					   chats.name, 
+					   chats.created_at, 
+					   chat_users.user_id, 
+					   min(age(clock_timestamp(), messages.created_at)) as time_since_message_creation
+				  from chats
+				  join chat_users 
+					on chat_users.chat_id = chats.id
+				  join messages
+					on chats.id = messages.chat_id
+				 group by chats.id, chats.name, chats.created_at, chat_users.user_id 
+				having chat_users.user_id = $1 
+				 order by time_since_message_creation
+			), 
+			
+			users_per_chat as (
+				select
+					chat_id,
+					array_agg(jsonb_build_object('id', users.id, 'username', trim(users.username), 'created_at', users.created_at)) as users
+				from chat_users 
+				join users 
+				  on chat_users.user_id = users.id
+			   group by chat_id
+			   order by chat_id desc
+			)
+			
+			select user_chats.id, 
+				   trim(user_chats.name),
+				   users_per_chat.users,
+				   user_chats.created_at
+			  from user_chats
+			  join users_per_chat
+				on user_chats.id = users_per_chat.chat_id`
+
+	rows, err := s.db.Query(ctx, sql, user)
+	if err != nil {
+		return nil, err
+	}
+
+	var chats []Chat
+	for rows.Next() {
+		var c retrievedChat
+		err = rows.Scan(&c.id, &c.name, &c.users, &c.createdAt)
+		if err != nil {
+			return nil, err
+		}
+
+		currentChat := Chat{
+			ID:        c.id,
+			Name:      c.name,
+			Users:     make([]User, len(c.users.Elements)),
+			CreatedAt: c.createdAt,
+		}
+
+		usersJSON := make([]string, len(c.users.Elements))
+		err = c.users.AssignTo(&usersJSON)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, v := range usersJSON {
+			err = json.Unmarshal([]byte(v), &currentChat.Users[i])
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		chats = append(chats, currentChat)
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	s.logger.Debugf("Retrieved %d chats", len(chats))
+
+	return chats, nil
+}
+
+// MessagesByChatID returns list of all chat messages with all fields, sorted by message creation time
+// (from earliest to latest)
+func (s *Store) MessagesByChatID(ctx context.Context, chat int64) ([]Message, error) {
+	s.logger.Debugf("Retrieving messages for chat (id: %d)", chat)
+
+	// check if chat exists
+	var i int8
+	sql := "select 1 from chats where id = $1"
+	err := s.db.QueryRow(ctx, sql, chat).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrChatNotExist
+		}
+		return nil, err
+	}
+
+	sql = `select messages.id, 
+				  messages.chat_id, 
+				  messages.author_id, 
+				  messages.text, 
+				  messages.created_at
+			 from messages 
+			where chat_id = $1 
+			order by created_at asc`
+
+	rows, err := s.db.Query(ctx, sql, chat)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var m Message
+		err = rows.Scan(&m.ID, &m.Chat, &m.Author, &m.Text, &m.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	s.logger.Debugf("Retrieved %d messages", len(messages))
+
+	return messages, nil
 }
