@@ -104,7 +104,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 	}
 
 	// bulk insert
-	_, err = tx.CopyFrom(ctx, pgx.Identifier{"chat-users"}, []string{"chat_id", "user_id"}, copyFromBulk(rows))
+	_, err = tx.CopyFrom(ctx, pgx.Identifier{"chat_users"}, []string{"chat_id", "user_id"}, copyFromBulk(rows))
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
