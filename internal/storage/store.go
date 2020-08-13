@@ -92,6 +92,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 				return 0, err
 			}
 		}
+		return 0, err
 	}
 
 	// preparing data for bulk insert
@@ -115,6 +116,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 				return 0, err
 			}
 		}
+		return 0, err
 	}
 
 	err = tx.Commit(ctx)
@@ -148,6 +150,7 @@ func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text stri
 				}
 			}
 		}
+		return 0, err
 	}
 
 	return id, nil
