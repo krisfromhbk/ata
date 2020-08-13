@@ -1,5 +1,7 @@
 package storage
 
+// TODO rewrite some tests to generate data they need during test instead of using predefined
+
 import (
 	"context"
 	"github.com/stretchr/testify/require"
@@ -12,9 +14,18 @@ import (
 
 var testUsers = []int64{39, 41, 42}
 
-func randString() string {
+func bootstrap(t *testing.T) *Store {
 	rand.Seed(time.Now().Unix())
 
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	s, err := New(logger.Sugar())
+	require.NoError(t, err)
+
+	return s
+}
+
+func randString() string {
 	var out strings.Builder
 	charSet := "abcdedfghijklmnopqrstABCDEFGHIJKLMNOP"
 	length := 10
@@ -26,13 +37,22 @@ func randString() string {
 	return out.String()
 }
 
-func bootstrap(t *testing.T) *Store {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-	s, err := New(logger.Sugar())
-	require.NoError(t, err)
+// batchUserIDs splits single userIDs slice into several slices of two userIDs where first one is the first provided
+// userID e.g. [0, 1, 2, 3, 4, 5] -> [[0,1], [0,2], [0,3], [0,4], [0,5]]
+// used in TestChatsByUserID test
+func batchUserIDs(userIDs []int64) [][]int64 {
+	batches := make([][]int64, 0, len(userIDs)-1)
+	for i := 1; i < len(userIDs); i++ {
+		batches = append(batches, []int64{userIDs[0], userIDs[i]})
+	}
 
-	return s
+	return batches
+}
+
+func TestBatchUserIDs(t *testing.T) {
+	userIDs := []int64{0, 1, 2, 3, 4, 5}
+	batches := batchUserIDs(userIDs)
+	require.Equal(t, [][]int64{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}}, batches)
 }
 
 func TestCreateUser(t *testing.T) {
@@ -75,7 +95,7 @@ func TestCreateChatExists(t *testing.T) {
 	require.Equal(t, ErrChatExists, err)
 }
 
-func TestCreateChatViolationFK(t *testing.T) {
+func TestCreateChatBadUsers(t *testing.T) {
 	s := bootstrap(t)
 
 	_, err := s.CreateChat(context.Background(), randString(), []int64{1, 2})
