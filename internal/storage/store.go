@@ -131,7 +131,7 @@ func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text stri
 	s.logger.Debugf("Creating message from user (id: %d) in chat (id: %d)", author, chat)
 
 	var id int64
-	sql := "insert into messages (chat_id, author_id, text, created_at) values ($1, $2, $3, $4)"
+	sql := "insert into messages (chat_id, author_id, text, created_at) values ($1, $2, $3, $4) returning id"
 	err := s.db.QueryRow(ctx, sql, chat, author, text, time.Now()).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
