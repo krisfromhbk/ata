@@ -127,3 +127,6 @@ fabric.properties
 .idea/codestream.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/go,jetbrains
+
+# Database connection info used in early development
+/internal/storage/tmp.go
