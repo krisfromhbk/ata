@@ -56,23 +56,17 @@ func TestBatchUserIDs(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-	s, err := New(logger.Sugar())
-	require.NoError(t, err)
+	s := bootstrap(t)
 
-	_, err = s.CreateUser(context.Background(), randString())
+	_, err := s.CreateUser(context.Background(), randString())
 	require.NoError(t, err)
 }
 
 func TestCreateUserExists(t *testing.T) {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-	s, err := New(logger.Sugar())
-	require.NoError(t, err)
+	s := bootstrap(t)
 
 	username := randString()
-	_, err = s.CreateUser(context.Background(), username)
+	_, err := s.CreateUser(context.Background(), username)
 	require.NoError(t, err)
 	_, err = s.CreateUser(context.Background(), username)
 	require.Equal(t, ErrUserExists, err)
