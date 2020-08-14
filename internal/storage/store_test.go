@@ -19,7 +19,7 @@ func bootstrap(t *testing.T) *Store {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	s, err := New(logger.Sugar())
+	s, err := New(logger.Sugar(), testConfig)
 	require.NoError(t, err)
 
 	return s
