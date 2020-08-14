@@ -33,8 +33,8 @@ type Store struct {
 }
 
 // New sets provided zap.Logger via zapadapter to pgxpool.Pool and returns instance of Store struct
-func New(logger *zap.SugaredLogger) (*Store, error) {
-	config, err := pgxpool.ParseConfig(connString)
+func New(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
+	config, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
 		return nil, err
 	}
