@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/log/zapadapter"
@@ -61,7 +62,7 @@ func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" {
+			if pgErr.Code == pgerrcode.UniqueViolation {
 				return 0, ErrUserExists
 			}
 		}
@@ -95,7 +96,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
-			case "23505":
+			case pgerrcode.UniqueViolation:
 				return 0, ErrChatExists
 			default:
 				return 0, err
@@ -119,7 +120,7 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
-			case "23503":
+			case pgerrcode.ForeignKeyViolation:
 				return 0, ErrChatBadUsers
 			default:
 				return 0, err
@@ -149,7 +150,7 @@ func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text stri
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
-			case "23503":
+			case pgerrcode.ForeignKeyViolation:
 				switch pgErr.ConstraintName {
 				case "messages_chat_id_fkey":
 					return 0, ErrMessageBadChat
