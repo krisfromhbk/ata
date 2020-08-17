@@ -3,22 +3,22 @@ package storage
 import "time"
 
 type User struct {
-	ID        int64
-	Username  string
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Chat struct {
-	ID        int64
-	Name      string
-	Users     []User
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Users     []User    `json:"users"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Message struct {
-	ID        int64
-	Chat      int64
-	Author    int64
-	Text      string
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	Chat      int64     `json:"chat"`
+	Author    int64     `json:"author"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"created_at"`
 }
