@@ -33,8 +33,8 @@ type Store struct {
 	db     *pgxpool.Pool
 }
 
-// New sets provided zap.Logger via zapadapter to pgxpool.Pool and returns instance of Store struct
-func New(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
+// NewStore sets provided zap.Logger via zapadapter to pgxpool.Pool and returns instance of Store struct
+func NewStore(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
 	config, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
 		return nil, err
@@ -50,6 +50,10 @@ func New(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
 		logger: logger,
 		db:     pool,
 	}, err
+}
+
+func (s *Store) Close() {
+	s.db.Close()
 }
 
 // CreateUser creates user and returns its id.
