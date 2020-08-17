@@ -3,11 +3,11 @@ package storage
 // TODO rewrite some tests to generate data they need during test instead of using predefined
 
 import (
+	mytesting "avito-trainee-assignment/internal/testing"
 	"context"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"math/rand"
-	"strings"
 	"testing"
 	"time"
 )
@@ -19,53 +19,30 @@ func bootstrap(t *testing.T) *Store {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	s, err := New(logger.Sugar(), testConfig)
+	s, err := NewStore(logger.Sugar(), TestConfig)
 	require.NoError(t, err)
 
 	return s
 }
 
-func randString() string {
-	var out strings.Builder
-	charSet := "abcdedfghijklmnopqrstABCDEFGHIJKLMNOP"
-	length := 10
-	for i := 0; i < length; i++ {
-		random := rand.Intn(len(charSet))
-		randomChar := charSet[random]
-		out.WriteString(string(randomChar))
-	}
-	return out.String()
-}
-
-// batchUserIDs splits single userIDs slice into several slices of two userIDs where first one is the first provided
-// userID e.g. [0, 1, 2, 3, 4, 5] -> [[0,1], [0,2], [0,3], [0,4], [0,5]]
-// used in TestChatsByUserID test
-func batchUserIDs(userIDs []int64) [][]int64 {
-	batches := make([][]int64, 0, len(userIDs)-1)
-	for i := 1; i < len(userIDs); i++ {
-		batches = append(batches, []int64{userIDs[0], userIDs[i]})
-	}
-
-	return batches
-}
-
-func TestBatchUserIDs(t *testing.T) {
-	userIDs := []int64{0, 1, 2, 3, 4, 5}
-	batches := batchUserIDs(userIDs)
-	require.Equal(t, [][]int64{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}}, batches)
+func TestNewStore(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	_, err = NewStore(logger.Sugar(), TestConfig)
+	require.NoError(t, err)
 }
 
 func TestCreateUser(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateUser(context.Background(), randString())
+	_, err := s.CreateUser(context.Background(), mytesting.RandString())
 	require.NoError(t, err)
 }
 
 func TestCreateUserExists(t *testing.T) {
 	s := bootstrap(t)
 
-	username := randString()
+	username := mytesting.RandString()
 	_, err := s.CreateUser(context.Background(), username)
 	require.NoError(t, err)
 	_, err = s.CreateUser(context.Background(), username)
@@ -75,14 +52,14 @@ func TestCreateUserExists(t *testing.T) {
 func TestCreateChat(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateChat(context.Background(), randString(), testUsers)
+	_, err := s.CreateChat(context.Background(), mytesting.RandString(), testUsers)
 	require.NoError(t, err)
 }
 
 func TestCreateChatExists(t *testing.T) {
 	s := bootstrap(t)
 
-	name := randString()
+	name := mytesting.RandString()
 	_, err := s.CreateChat(context.Background(), name, testUsers)
 	require.NoError(t, err)
 	_, err = s.CreateChat(context.Background(), name, testUsers)
@@ -92,7 +69,7 @@ func TestCreateChatExists(t *testing.T) {
 func TestCreateChatBadUsers(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateChat(context.Background(), randString(), []int64{1, 2})
+	_, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{1, 2})
 	require.Equal(t, ErrChatBadUsers, err)
 }
 
@@ -127,25 +104,25 @@ func TestChatsByUserID(t *testing.T) {
 	// test will retrieve chats for the first user
 	userIDs := make([]int64, n)
 	for i := range userIDs {
-		id, err := s.CreateUser(context.Background(), randString())
+		id, err := s.CreateUser(context.Background(), mytesting.RandString())
 		require.NoError(t, err)
 		userIDs[i] = id
 	}
 
 	// creating chats between users [0,1], [0,2], [0,3], etc.
 	chatIDs := make([]int64, n-1)
-	for i, v := range batchUserIDs(userIDs) {
-		id, err := s.CreateChat(context.Background(), randString(), v)
+	for i, v := range mytesting.BatchUserIDs(userIDs) {
+		id, err := s.CreateChat(context.Background(), mytesting.RandString(), v)
 		require.NoError(t, err)
 		chatIDs[i] = id
 	}
 
-	// creating 2 messages (author - first user) in each chat with 3 sec delay
+	// creating 2 messages (author - first user) in each chat with 1 sec delay
 	for _, v := range chatIDs {
-		_, err := s.CreateMessage(context.Background(), v, userIDs[0], randString())
+		_, err := s.CreateMessage(context.Background(), v, userIDs[0], mytesting.RandString())
 		require.NoError(t, err)
 		time.Sleep(1 * time.Second)
-		_, err = s.CreateMessage(context.Background(), v, userIDs[0], randString())
+		_, err = s.CreateMessage(context.Background(), v, userIDs[0], mytesting.RandString())
 		require.NoError(t, err)
 	}
 
@@ -153,12 +130,7 @@ func TestChatsByUserID(t *testing.T) {
 	chats, err := s.ChatsByUserID(context.Background(), userIDs[0])
 	require.NoError(t, err)
 
-	expected := chatIDs
-	// reversing IDs in expected
-	for i := len(expected)/2 - 1; i >= 0; i-- {
-		opp := len(expected) - 1 - i
-		expected[i], expected[opp] = expected[opp], expected[i]
-	}
+	expected := mytesting.ReverseIDs(chatIDs)
 
 	// extracting actual IDs
 	actual := make([]int64, 0, len(chats))
@@ -182,16 +154,16 @@ func TestMessagesByChatID(t *testing.T) {
 	// number of messages
 	n := 5
 
-	userOneID, err := s.CreateUser(context.Background(), randString())
+	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
 	require.NoError(t, err)
-	userTwoID, err := s.CreateUser(context.Background(), randString())
+	userTwoID, err := s.CreateUser(context.Background(), mytesting.RandString())
 	require.NoError(t, err)
-	chatID, err := s.CreateChat(context.Background(), randString(), []int64{userOneID, userTwoID})
+	chatID, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{userOneID, userTwoID})
 	require.NoError(t, err)
 
 	messageIDs := make([]int64, n)
 	for i := 0; i < n; i++ {
-		id, err := s.CreateMessage(context.Background(), chatID, userTwoID, randString())
+		id, err := s.CreateMessage(context.Background(), chatID, userTwoID, mytesting.RandString())
 		require.NoError(t, err)
 		messageIDs[i] = id
 		require.NoError(t, err)
