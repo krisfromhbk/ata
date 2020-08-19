@@ -5,16 +5,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"math/rand"
-	"os"
 	"testing"
 	"time"
 )
-
-func TestMain(m *testing.M) {
-	rand.Seed(time.Now().Unix())
-	os.Exit(m.Run())
-}
 
 func bootstrap(t *testing.T) *Store {
 	logger, err := zap.NewDevelopment()
@@ -26,6 +19,8 @@ func bootstrap(t *testing.T) *Store {
 }
 
 func TestNewStore(t *testing.T) {
+	t.Parallel()
+
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	_, err = NewStore(logger.Sugar(), TestConfig)
@@ -33,6 +28,8 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	_, err := s.CreateUser(context.Background(), mytesting.RandString())
@@ -40,6 +37,8 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserExists(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	username := mytesting.RandString()
@@ -50,6 +49,8 @@ func TestCreateUserExists(t *testing.T) {
 }
 
 func TestCreateChat(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	// number of users
@@ -75,6 +76,8 @@ func TestCreateChat(t *testing.T) {
 }
 
 func TestCreateChatExists(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	// number of users
@@ -103,6 +106,8 @@ func TestCreateChatExists(t *testing.T) {
 }
 
 func TestCreateChatBadUsers(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	_, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{0, 1})
@@ -110,6 +115,8 @@ func TestCreateChatBadUsers(t *testing.T) {
 }
 
 func TestCreateMessage(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
@@ -125,6 +132,8 @@ func TestCreateMessage(t *testing.T) {
 }
 
 func TestCreateMessageChatNotExist(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	userID, err := s.CreateUser(context.Background(), mytesting.RandString())
@@ -135,6 +144,8 @@ func TestCreateMessageChatNotExist(t *testing.T) {
 }
 
 func TestCreateMessageUserNotExist(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
@@ -150,6 +161,8 @@ func TestCreateMessageUserNotExist(t *testing.T) {
 }
 
 func TestCreateMessageUserNotChatMember(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
@@ -168,6 +181,8 @@ func TestCreateMessageUserNotChatMember(t *testing.T) {
 
 // TODO test not only by IDs but the whole chat rows
 func TestChatsByUserID(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 	// number of users
 	n := 5
@@ -214,6 +229,8 @@ func TestChatsByUserID(t *testing.T) {
 }
 
 func TestChatsByUserIDNotExist(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	_, err := s.ChatsByUserID(context.Background(), 0)
@@ -222,6 +239,8 @@ func TestChatsByUserIDNotExist(t *testing.T) {
 
 // TODO test not only by IDs but the whole message rows
 func TestMessagesByChatID(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 	// number of messages
 	n := 5
@@ -255,6 +274,8 @@ func TestMessagesByChatID(t *testing.T) {
 }
 
 func TestMessagesByChatIDNotExist(t *testing.T) {
+	t.Parallel()
+
 	s := bootstrap(t)
 
 	_, err := s.MessagesByChatID(context.Background(), 0)
