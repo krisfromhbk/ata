@@ -11,8 +11,8 @@ services:
       POSTGRES_DB: "dev"
     ports:
       - "127.0.0.1:5432:5432"
-    volumes:
-      - ${PWD}/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+#    volumes:
+#      - ${PWD}/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   pgadmin:
     image: dpage/pgadmin4
