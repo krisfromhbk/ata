@@ -1,22 +1,22 @@
 package storage
 
-// TODO rewrite some tests to generate data they need during test instead of using predefined
-
 import (
 	mytesting "avito-trainee-assignment/internal/testing"
 	"context"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
 
-var testUsers = []int64{39, 41, 42}
+func TestMain(m *testing.M) {
+	rand.Seed(time.Now().Unix())
+	os.Exit(m.Run())
+}
 
 func bootstrap(t *testing.T) *Store {
-	rand.Seed(time.Now().Unix())
-
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	s, err := NewStore(logger.Sugar(), TestConfig)
@@ -52,46 +52,118 @@ func TestCreateUserExists(t *testing.T) {
 func TestCreateChat(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateChat(context.Background(), mytesting.RandString(), testUsers)
+	// number of users
+	n := 3
+
+	// generating usernames
+	usernames := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		usernames = append(usernames, mytesting.RandString())
+	}
+
+	// creating users in database
+	userIDs := make([]int64, 0, n)
+	for _, username := range usernames {
+		id, err := s.CreateUser(context.Background(), username)
+		require.NoError(t, err)
+
+		userIDs = append(userIDs, id)
+	}
+
+	_, err := s.CreateChat(context.Background(), mytesting.RandString(), userIDs)
 	require.NoError(t, err)
 }
 
 func TestCreateChatExists(t *testing.T) {
 	s := bootstrap(t)
 
+	// number of users
+	n := 3
+
+	// generating usernames
+	usernames := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		usernames = append(usernames, mytesting.RandString())
+	}
+
+	// creating users in database
+	userIDs := make([]int64, 0, n)
+	for _, username := range usernames {
+		id, err := s.CreateUser(context.Background(), username)
+		require.NoError(t, err)
+
+		userIDs = append(userIDs, id)
+	}
+
 	name := mytesting.RandString()
-	_, err := s.CreateChat(context.Background(), name, testUsers)
+	_, err := s.CreateChat(context.Background(), name, userIDs)
 	require.NoError(t, err)
-	_, err = s.CreateChat(context.Background(), name, testUsers)
+	_, err = s.CreateChat(context.Background(), name, userIDs)
 	require.Equal(t, ErrChatExists, err)
 }
 
 func TestCreateChatBadUsers(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{1, 2})
+	_, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{0, 1})
 	require.Equal(t, ErrChatBadUsers, err)
 }
 
 func TestCreateMessage(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateMessage(context.Background(), 4, 39, "Hi There!")
+	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+	userTwoID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+
+	chatID, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{userOneID, userTwoID})
+	require.NoError(t, err)
+
+	_, err = s.CreateMessage(context.Background(), chatID, userOneID, mytesting.RandString())
 	require.NoError(t, err)
 }
 
-func TestCreateMessageBadChat(t *testing.T) {
+func TestCreateMessageChatNotExist(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateMessage(context.Background(), 1, 39, "Hi There!")
-	require.Equal(t, ErrMessageBadChat, err)
+	userID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+
+	_, err = s.CreateMessage(context.Background(), 0, userID, "Hi There!")
+	require.Equal(t, ErrChatNotExist, err)
 }
 
-func TestCreateMessageBadAuthor(t *testing.T) {
+func TestCreateMessageUserNotExist(t *testing.T) {
 	s := bootstrap(t)
 
-	_, err := s.CreateMessage(context.Background(), 4, 1, "Hi There!")
-	require.Equal(t, ErrMessageBadAuthor, err)
+	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+	userTwoID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+
+	chatID, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{userOneID, userTwoID})
+	require.NoError(t, err)
+
+	_, err = s.CreateMessage(context.Background(), chatID, 0, "Hi There!")
+	require.Equal(t, ErrUserNotExist, err)
+}
+
+func TestCreateMessageUserNotChatMember(t *testing.T) {
+	s := bootstrap(t)
+
+	userOneID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+	userTwoID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+	userThreeID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+
+	chatID, err := s.CreateChat(context.Background(), mytesting.RandString(), []int64{userOneID, userTwoID})
+	require.NoError(t, err)
+
+	_, err = s.CreateMessage(context.Background(), chatID, userThreeID, "Hi There!")
+	require.Equal(t, ErrUserNotChatMember, err)
 }
 
 // TODO test not only by IDs but the whole chat rows
