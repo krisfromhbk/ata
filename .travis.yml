@@ -3,13 +3,13 @@ language: go
 go:
   - 1.14.x
 
-sudo: true
-addons:
-  postgresql: '12'
-  apt:
-    packages:
-      - postgresql-12
-      - postgresql-client-12
+#sudo: true
+#addons:
+#  postgresql: '12'
+#  apt:
+#    packages:
+#      - postgresql-12
+#      - postgresql-client-12
 
 services:
   - postgresql
@@ -19,9 +19,9 @@ env:
     - PGPORT=5432
 
 before_install:
-  - sudo -u postgres psql -c "CREATE DATABASE dev"
-  - sudo -u postgres psql -c "CREATE USER kris WITH PASSWORD `changeme`"
-  - sudo -u postgres psql -d dev -f -a ./deployments/schema.sql
+  - psql -c "CREATE DATABASE dev" -U postgres
+  - psql -c "CREATE USER kris WITH PASSWORD `changeme`" -U postgres
+  - psql -d dev -f -a ./deployments/schema.sql -U postgres
 
 script:
   # build test for supported platforms
