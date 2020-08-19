@@ -3,7 +3,7 @@ package storage
 var TestConfig = Config{
 	User:     "kris",
 	Password: "changeme",
-	Host:     "127.0.0.1",
+	Host:     "0.0.0.0",
 	Port:     5432,
 	DBName:   "dev",
 }
