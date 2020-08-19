@@ -1,6 +1,5 @@
 package storage
 
-// TODO create models in storage package
 // TODO maybe https://github.com/jackc/pgtype provides better types for current package as it includes binary encoding
 
 import (
