@@ -10,7 +10,7 @@ services:
       PGDATA: "/var/lib/postgresql/data/sampleDir"
       POSTGRES_DB: "dev"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ${PWD}/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
