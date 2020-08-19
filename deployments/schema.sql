@@ -1,3 +1,18 @@
+-- SEQUENCE: public.users_id_seq
+
+-- DROP SEQUENCE public.users_id_seq;
+
+CREATE SEQUENCE public.users_id_seq
+    INCREMENT 1
+    START 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+ALTER SEQUENCE public.users_id_seq
+    OWNER TO kris;
+
+
 -- Table: public.users
 
 -- DROP TABLE public.users;
@@ -15,6 +30,21 @@ TABLESPACE pg_default;
 
 ALTER TABLE public.users
     OWNER to kris;
+
+
+-- SEQUENCE: public.chats_id_seq
+
+-- DROP SEQUENCE public.chats_id_seq;
+
+CREATE SEQUENCE public.chats_id_seq
+    INCREMENT 1
+    START 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+ALTER SEQUENCE public.chats_id_seq
+    OWNER TO kris;
 
 
 -- Table: public.chats
@@ -61,6 +91,21 @@ CREATE TABLE public.chat_users
 
 ALTER TABLE public.chat_users
     OWNER to kris;
+
+
+-- SEQUENCE: public.messages_id_seq
+
+-- DROP SEQUENCE public.messages_id_seq;
+
+CREATE SEQUENCE public.messages_id_seq
+    INCREMENT 1
+    START 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+ALTER SEQUENCE public.messages_id_seq
+    OWNER TO kris;
 
 
 -- Table: public.messages
