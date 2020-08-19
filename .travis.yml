@@ -3,6 +3,19 @@ language: go
 go:
   - 1.14.x
 
+sudo: true
+addons:
+  postgresql: '12.3'
+
+env:
+  global:
+    - PGPORT=15432
+
+before_install:
+  - sudo -u postgres psql -c "CREATE DATABASE dev"
+  - sudo -u postgres psql -c "CREATE USER kris WITH PASSWORD `changeme`"
+  - sudo -u postgres psql -d dev -f -a ./deployments/schema.sql
+
 script:
   # build test for supported platforms
   - GOOS=linux go build
