@@ -20,7 +20,7 @@ env:
 
 before_install:
   - psql -c "CREATE DATABASE dev;" -U postgres
-  - psql -c "CREATE USER kris WITH PASSWORD `changeme`;" -U postgres
+  - psql -c "CREATE USER kris WITH PASSWORD 'changeme';" -U postgres
   - psql -d dev -f -a ./deployments/schema.sql -U postgres
 
 script:
