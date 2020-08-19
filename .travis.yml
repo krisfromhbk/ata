@@ -3,30 +3,16 @@ language: go
 go:
   - 1.14.x
 
-#sudo: true
-#addons:
-#  postgresql: '12'
-#  apt:
-#    packages:
-#      - postgresql-12
-#      - postgresql-client-12
-
 services:
-  - postgresql
-
-env:
-  global:
-    - PGPORT=5432
+  - docker
 
 before_install:
-  - psql -c "CREATE DATABASE dev;" -U postgres
-  - psql -c "CREATE USER kris WITH PASSWORD 'changeme';" -U postgres
-  - psql -d dev -f ./deployments/schema.sql -U postgres
+  - docker-compose up -d -f ./deployments/docker-compose.yml postgres
 
 script:
   # build test for supported platforms
-  - GOOS=linux go build
-  - GOOS=windows go build
+  # - GOOS=linux go build
+  # - GOOS=windows go build
 
   # run tests on a standard platform
   - go test -v ./... -coverprofile=coverage.txt -covermode=atomic

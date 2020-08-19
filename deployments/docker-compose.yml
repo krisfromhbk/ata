@@ -5,14 +5,14 @@ services:
     image: postgres:12.3
     init: true
     environment:
-      POSTGRES_USER: "1"
-      POSTGRES_PASSWORD: "1"
+      POSTGRES_USER: "kris"
+      POSTGRES_PASSWORD: "changeme"
       PGDATA: "/var/lib/postgresql/data/sampleDir"
       POSTGRES_DB: "dev"
     ports:
-      - "15432:5432"
-  #    volumes:
-  #      - ./data:/var/lib/postgresql/data
+      - "5432:5432"
+    volumes:
+      - ${PWD}/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   pgadmin:
     image: dpage/pgadmin4
