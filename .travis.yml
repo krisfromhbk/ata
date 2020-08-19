@@ -9,7 +9,7 @@ addons:
 
 env:
   global:
-    - PGPORT=15432
+    - PGPORT=5432
 
 before_install:
   - sudo -u postgres psql -c "CREATE DATABASE dev"
