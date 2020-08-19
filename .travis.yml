@@ -9,7 +9,7 @@ services:
 before_install:
   - docker-compose -f ./deployments/docker-compose.yml up -d postgres
   - docker-compose -f ./deployments/docker-compose.yml ps
-  - docker-compose -f ./deployments/docker-compose.tml logs
+  - docker-compose -f ./deployments/docker-compose.yml logs
 
 script:
   # build test for supported platforms
