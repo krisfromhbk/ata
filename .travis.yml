@@ -11,6 +11,9 @@ addons:
       - postgresql-12
       - postgresql-client-12
 
+services:
+  - postgresql
+
 env:
   global:
     - PGPORT=5432
