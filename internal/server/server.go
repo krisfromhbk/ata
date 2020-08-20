@@ -53,6 +53,8 @@ func NewServer(logger *zap.SugaredLogger, config Config, store *storage.Store) (
 	return srv, nil
 }
 
+// Start calls ListenAndServe on http.Server instance inside Server struct
+// and implements graceful shutdown via goroutine waiting for signals
 func (s *Server) Start() error {
 	idleConnsClosed := make(chan struct{})
 

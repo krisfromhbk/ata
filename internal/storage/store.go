@@ -50,6 +50,7 @@ func NewStore(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
 	}, err
 }
 
+// Close closes all database connections
 func (s *Store) Close() {
 	s.db.Close()
 }

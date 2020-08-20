@@ -1,5 +1,6 @@
 package storage
 
+// TestConfig defines config used in development process
 var TestConfig = Config{
 	User:     "kris",
 	Password: "changeme",
