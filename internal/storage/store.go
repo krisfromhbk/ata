@@ -23,8 +23,6 @@ var (
 	ErrChatExists        = errors.New("chat already exists")
 	ErrChatBadUsers      = errors.New("bad users list")
 	ErrChatNotExist      = errors.New("chat does not exist")
-	//ErrMessageBadChat       = errors.New("bad chat id")
-	//ErrMessageBadAuthor     = errors.New("bad author id")
 )
 
 // Store defines fields used in db interaction processes
@@ -162,18 +160,8 @@ func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text stri
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				switch pgErr.ConstraintName {
-				case "messages_chat_id_fkey":
-					return 0, ErrChatNotExist
-				case "messages_author_id_fkey":
-					return 0, ErrUserNotExist
-				case "messages_chat_id_author_id_fkey":
-					return 0, ErrUserNotChatMember
-				default:
-					return 0, err
-				}
+			if pgErr.Code == pgerrcode.ForeignKeyViolation {
+				return 0, ErrUserNotChatMember
 			}
 		}
 		return 0, err
