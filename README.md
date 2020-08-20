@@ -1,1 +1,1 @@
-[![Build Status](https://travis-ci.org/krisfromhbk/ata.svg?branch=master)](https://travis-ci.org/krisfromhbk/ata)
+[![Build Status](https://travis-ci.org/krisfromhbk/ata.svg?branch=master)](https://travis-ci.org/krisfromhbk/avito-trainee-assignment)
