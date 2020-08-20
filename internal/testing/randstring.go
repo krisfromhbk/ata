@@ -4,7 +4,7 @@ import (
 	"github.com/rs/xid"
 )
 
-// RandString generates random string with 10 symbols length from lower- and uppercase alphabet
+// RandString generates random string using github.com/rs/xid package
 func RandString() string {
 	guid := xid.New()
 
