@@ -11,11 +11,6 @@ services:
 
 before_install:
   - docker-compose -f ./deployments/docker-compose.yml up -d postgres
-  # debugging calls
-  - docker-compose -f ./deployments/docker-compose.yml ps
-  - docker-compose -f ./deployments/docker-compose.yml logs
-#  - docker exec -it $(docker ps -q) psql -U kris -d dev -c 'select * from public.users;'
-  - netstat -a
 
 script:
   # build test for supported platforms
