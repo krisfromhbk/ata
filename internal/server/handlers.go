@@ -12,6 +12,7 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // TODO maybe omit error handling after call to parser.Parse as provided body already contains valid JSON
@@ -144,7 +145,7 @@ func (h *handler) createChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := string(nameValue.MarshalTo(nil))
+	name := strings.Trim(string(nameValue.MarshalTo(nil)), `"`)
 	if len(name) == 0 {
 		http.Error(w, "Field \"name\" must have non-zero length", http.StatusBadRequest)
 		return
@@ -221,6 +222,11 @@ func (h *handler) createMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// retrieving chat id
+	if !v.Exists("chat") {
+		http.Error(w, "Missing Field \"chat\"", http.StatusBadRequest)
+		return
+	}
+
 	chatValue := v.Get("chat")
 	chatID, err := chatValue.Int64()
 	if err != nil {
@@ -228,12 +234,17 @@ func (h *handler) createMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if chatID < 0 {
+	if chatID < 1 {
 		http.Error(w, "Field \"chat\" must be a valid chat id grater than zero", http.StatusBadRequest)
 		return
 	}
 
 	// retrieving author id
+	if !v.Exists("author") {
+		http.Error(w, "Missing Field \"author\"", http.StatusBadRequest)
+		return
+	}
+
 	authorValue := v.Get("author")
 	authorID, err := authorValue.Int64()
 	if err != nil {
@@ -241,20 +252,25 @@ func (h *handler) createMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authorID < 0 {
-		http.Error(w, "Field \"author\" must be a valid chat id grater than zero", http.StatusBadRequest)
+	if authorID < 1 {
+		http.Error(w, "Field \"author\" must be a valid user id grater than zero", http.StatusBadRequest)
 		return
 	}
 
 	// retrieving text
+	if !v.Exists("text") {
+		http.Error(w, "Missing Field \"text\"", http.StatusBadRequest)
+		return
+	}
+
 	textValue := v.Get("text")
 	if textValue.Type() != fastjson.TypeString {
 		http.Error(w, "Field \"text\" must be a string", http.StatusBadRequest)
 		return
 	}
 
-	text := string(textValue.MarshalTo(nil))
-	if len(text) < 0 {
+	text := strings.Trim(string(textValue.MarshalTo(nil)), `"`)
+	if len(text) == 0 {
 		http.Error(w, "Field \"text\" must have non-zero length", http.StatusBadRequest)
 		return
 	}
@@ -270,6 +286,9 @@ func (h *handler) createMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		case storage.ErrUserNotExist:
 			http.Error(w, "Author with provided id does not exist", http.StatusBadRequest)
+			return
+		case storage.ErrUserNotChatMember:
+			http.Error(w, "Author is not chat member", http.StatusBadRequest)
 			return
 		default:
 			h.logger.Error(err)
@@ -298,7 +317,12 @@ func (h *handler) chatsByUserID(w http.ResponseWriter, r *http.Request) {
 	defer h.parsers.chatsByUserIDPool.Put(parser)
 	v, err := parser.ParseBytes(body)
 	if err != nil {
-		http.Error(w, "Malformed JSON object", http.StatusBadRequest)
+		http.Error(w, "Malformed JSON", http.StatusBadRequest)
+		return
+	}
+
+	if !v.Exists("user") {
+		http.Error(w, "Missing Field \"user\"", http.StatusBadRequest)
 		return
 	}
 
@@ -306,6 +330,11 @@ func (h *handler) chatsByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, err := userIDValue.Int64()
 	if err != nil {
 		http.Error(w, "Field \"user\" must be a 64-bit integer value", http.StatusBadRequest)
+		return
+	}
+
+	if userID < 1 {
+		http.Error(w, "Field \"user\" must be a valid user id grater than zero", http.StatusBadRequest)
 		return
 	}
 
@@ -349,6 +378,11 @@ func (h *handler) messagesByChatID(w http.ResponseWriter, r *http.Request) {
 	v, err := parser.ParseBytes(body)
 	if err != nil {
 		http.Error(w, "Malformed JSON object", http.StatusBadRequest)
+		return
+	}
+
+	if !v.Exists("chat") {
+		http.Error(w, "Missing Field \"chat\"", http.StatusBadRequest)
 		return
 	}
 
