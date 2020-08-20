@@ -2,10 +2,12 @@ package server
 
 import (
 	"avito-trainee-assignment/internal/storage"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
+	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -13,6 +15,7 @@ import (
 )
 
 // TODO maybe omit error handling after call to parser.Parse as provided body already contains valid JSON
+// TODO limit reading from body
 
 type parsers struct {
 	createChatPool       fastjson.ParserPool
@@ -56,9 +59,16 @@ func enforcePOSTJSON(next http.Handler) http.Handler {
 		}
 
 		// check if provided request body is valid JSON
-		body, err := ioutil.ReadAll(r.Body)
+		var bodyBuf bytes.Buffer
+		bodyReader := io.TeeReader(r.Body, &bodyBuf)
+		body, err := ioutil.ReadAll(bodyReader)
 		if err != nil {
 			http.Error(w, "Can not read request body", http.StatusBadRequest)
+			return
+		}
+
+		if len(body) == 0 {
+			http.Error(w, "No body provided", http.StatusBadRequest)
 			return
 		}
 
@@ -67,6 +77,8 @@ func enforcePOSTJSON(next http.Handler) http.Handler {
 			http.Error(w, "Malformed JSON", http.StatusBadRequest)
 			return
 		}
+
+		r.Body = ioutil.NopCloser(&bodyBuf)
 
 		next.ServeHTTP(w, r)
 	})
