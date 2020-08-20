@@ -136,10 +136,10 @@ func TestCreateMessageChatNotExist(t *testing.T) {
 
 	s := bootstrap(t)
 
-	//userID, err := s.CreateUser(context.Background(), mytesting.RandString())
-	//require.NoError(t, err)
+	userID, err := s.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
 
-	_, err := s.CreateMessage(context.Background(), 0, 0, "Hi There!")
+	_, err = s.CreateMessage(context.Background(), 0, userID, "Hi There!")
 	require.Equal(t, ErrChatNotExist, err)
 }
 
