@@ -65,10 +65,8 @@ func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) 
 	err := s.db.QueryRow(ctx, sql, username, time.Now()).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == pgerrcode.UniqueViolation {
-				return 0, ErrUserExists
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return 0, ErrUserExists
 		}
 		return 0, err
 	}
@@ -98,13 +96,8 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 	err = tx.QueryRow(ctx, sql, name, time.Now()).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return 0, ErrChatExists
-			default:
-				return 0, err
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return 0, ErrChatExists
 		}
 		return 0, err
 	}
@@ -122,13 +115,8 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 	_, err = tx.CopyFrom(ctx, pgx.Identifier{"chat_users"}, []string{"chat_id", "user_id"}, copyFromBulk(rows))
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				return 0, ErrChatBadUsers
-			default:
-				return 0, err
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.ForeignKeyViolation {
+			return 0, ErrChatBadUsers
 		}
 		return 0, err
 	}
@@ -147,9 +135,30 @@ func (s *Store) CreateChat(ctx context.Context, name string, users []int64) (int
 func (s *Store) CreateMessage(ctx context.Context, chat, author int64, text string) (int64, error) {
 	s.logger.Debugf("Creating message from user (id: %d) in chat (id: %d)", author, chat)
 
+	// check if chat exists
+	var i int8
+	sql := "select 1 from chats where id = $1"
+	err := s.db.QueryRow(ctx, sql, chat).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrChatNotExist
+		}
+		return 0, err
+	}
+
+	// check if user exists
+	sql = "select 1 from users where id = $1"
+	err = s.db.QueryRow(ctx, sql, author).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrUserNotExist
+		}
+		return 0, err
+	}
+
 	var id int64
-	sql := "insert into messages (chat_id, author_id, text, created_at) values ($1, $2, $3, $4) returning id"
-	err := s.db.QueryRow(ctx, sql, chat, author, text, time.Now()).Scan(&id)
+	sql = "insert into messages (chat_id, author_id, text, created_at) values ($1, $2, $3, $4) returning id"
+	err = s.db.QueryRow(ctx, sql, chat, author, text, time.Now()).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

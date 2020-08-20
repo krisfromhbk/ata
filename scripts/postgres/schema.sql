@@ -120,16 +120,8 @@ CREATE TABLE public.messages
     text text COLLATE pg_catalog."default" NOT NULL,
     created_at timestamp with time zone NOT NULL,
     CONSTRAINT messages_pkey PRIMARY KEY (id),
-    CONSTRAINT messages_author_id_fkey FOREIGN KEY (author_id)
-        REFERENCES public.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION,
     CONSTRAINT messages_chat_id_author_id_fkey FOREIGN KEY (author_id, chat_id)
         REFERENCES public.chat_users (user_id, chat_id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION,
-    CONSTRAINT messages_chat_id_fkey FOREIGN KEY (chat_id)
-        REFERENCES public.chats (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 )
