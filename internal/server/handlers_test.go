@@ -37,6 +37,95 @@ func bootstrapHandler(t *testing.T) *handler {
 	return h
 }
 
+func statusOkHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func TestEnforcePOSTJSON(t *testing.T) {
+	t.Parallel()
+
+	payload := bytes.NewBuffer([]byte(`{"username":"` + mytesting.RandString() + `"}`))
+	req, err := http.NewRequest("POST", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestEnforcePOSTJSON_NotPOST(t *testing.T) {
+	t.Parallel()
+
+	payload := bytes.NewBuffer([]byte(`{"username":"` + mytesting.RandString() + `"}`))
+	req, err := http.NewRequest("GET", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusMethodNotAllowed, rr.Code)
+	require.Equal(t, http.StatusText(http.StatusMethodNotAllowed)+"\n", rr.Body.String())
+}
+
+func TestEnforcePOSTJSON_MalformedContentType(t *testing.T) {
+	t.Parallel()
+
+	payload := bytes.NewBuffer([]byte(`{"username":"` + mytesting.RandString() + `"}`))
+	req, err := http.NewRequest("POST", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "1:2\n+/-")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Malformed Content-Type header\n", rr.Body.String())
+}
+
+func TestEnforcePOSTJSON_UnsupportedContentType(t *testing.T) {
+	t.Parallel()
+
+	payload := bytes.NewBuffer([]byte(`{"username":"` + mytesting.RandString() + `"}`))
+	req, err := http.NewRequest("POST", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "text/plain")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
+	require.Equal(t, "Content-Type header must be application/json\n", rr.Body.String())
+}
+
+func TestEnforcePOSTJSON_MalformedJSON(t *testing.T) {
+	t.Parallel()
+
+	// missing opening quotation mark after colon
+	payload := bytes.NewBuffer([]byte(`{"username":` + mytesting.RandString() + `"}`))
+	req, err := http.NewRequest("POST", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Malformed JSON\n", rr.Body.String())
+}
+
 func TestCreateUser(t *testing.T) {
 	t.Parallel()
 
