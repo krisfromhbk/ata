@@ -64,7 +64,7 @@ func enforcePOSTJSON(next http.Handler) http.Handler {
 
 		err = fastjson.ValidateBytes(body)
 		if err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			http.Error(w, "Malformed JSON", http.StatusBadRequest)
 			return
 		}
 
