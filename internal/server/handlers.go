@@ -15,7 +15,6 @@ import (
 	"strings"
 )
 
-// TODO maybe omit error handling after call to parser.Parse as provided body already contains valid JSON
 // TODO limit reading from body
 
 type parsers struct {
@@ -127,11 +126,7 @@ func (h *handler) createChat(w http.ResponseWriter, r *http.Request) {
 
 	parser := h.parsers.createChatPool.Get()
 	defer h.parsers.createChatPool.Put(parser)
-	v, err := parser.ParseBytes(body)
-	if err != nil {
-		http.Error(w, "Malformed JSON object", http.StatusBadRequest)
-		return
-	}
+	v, _ := parser.ParseBytes(body)
 
 	// retrieving chat name
 	if !v.Exists("name") {
@@ -215,11 +210,7 @@ func (h *handler) createMessage(w http.ResponseWriter, r *http.Request) {
 
 	parser := h.parsers.createMessagePool.Get()
 	defer h.parsers.createMessagePool.Put(parser)
-	v, err := parser.ParseBytes(body)
-	if err != nil {
-		http.Error(w, "Malformed JSON object", http.StatusBadRequest)
-		return
-	}
+	v, _ := parser.ParseBytes(body)
 
 	// retrieving chat id
 	if !v.Exists("chat") {
@@ -315,11 +306,7 @@ func (h *handler) chatsByUserID(w http.ResponseWriter, r *http.Request) {
 
 	parser := h.parsers.chatsByUserIDPool.Get()
 	defer h.parsers.chatsByUserIDPool.Put(parser)
-	v, err := parser.ParseBytes(body)
-	if err != nil {
-		http.Error(w, "Malformed JSON", http.StatusBadRequest)
-		return
-	}
+	v, _ := parser.ParseBytes(body)
 
 	if !v.Exists("user") {
 		http.Error(w, "Missing Field \"user\"", http.StatusBadRequest)
@@ -375,11 +362,7 @@ func (h *handler) messagesByChatID(w http.ResponseWriter, r *http.Request) {
 
 	parser := h.parsers.messagesByChatIDPool.Get()
 	defer h.parsers.messagesByChatIDPool.Put(parser)
-	v, err := parser.ParseBytes(body)
-	if err != nil {
-		http.Error(w, "Malformed JSON object", http.StatusBadRequest)
-		return
-	}
+	v, _ := parser.ParseBytes(body)
 
 	if !v.Exists("chat") {
 		http.Error(w, "Missing Field \"chat\"", http.StatusBadRequest)
@@ -390,6 +373,11 @@ func (h *handler) messagesByChatID(w http.ResponseWriter, r *http.Request) {
 	chatID, err := chatIDValue.Int64()
 	if err != nil {
 		http.Error(w, "Field \"chat\" must be a 64-bit integer value", http.StatusBadRequest)
+		return
+	}
+
+	if chatID < 1 {
+		http.Error(w, "Field \"chat\" must be a valid chat id grater than zero", http.StatusBadRequest)
 		return
 	}
 
