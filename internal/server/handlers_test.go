@@ -140,6 +140,22 @@ func TestEnforcePOSTJSON_NoContentType(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code)
 }
 
+func TestEnforcePOSTJSON_NoBody(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte("")))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "No body provided\n", rr.Body.String())
+}
+
 func TestEnforcePOSTJSON_MalformedJSON(t *testing.T) {
 	t.Parallel()
 
@@ -264,7 +280,7 @@ func TestCreateUserAlreadyExists(t *testing.T) {
 	require.Equal(t, "User already exists\n", rr.Body.String())
 }
 
-func TestCreateUserInternalOnCreateUserCall(t *testing.T) {
+func TestCreateUserInternalOnStoreCall(t *testing.T) {
 	t.Parallel()
 
 	h := bootstrapHandler(t)
@@ -342,26 +358,6 @@ func TestCreateChat(t *testing.T) {
 	idValue := v.Get("id")
 	_, err = idValue.Int64()
 	require.NoError(t, err)
-}
-
-func TestCreateChatMalformedJSON(t *testing.T) {
-	t.Parallel()
-
-	h := bootstrapHandler(t)
-
-	// missing opening quotation mark after colon
-	payload := bytes.NewBuffer([]byte(`{"variable":` + mytesting.RandString() + `"}`))
-	req, err := http.NewRequest("POST", "/", payload)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
-
-	handler.ServeHTTP(rr, req)
-
-	require.Equal(t, http.StatusBadRequest, rr.Code)
-	require.Equal(t, "Malformed JSON\n", rr.Body.String())
 }
 
 func TestCreateChatNoNameField(t *testing.T) {
@@ -537,7 +533,27 @@ func TestCreateChatAlreadyExists(t *testing.T) {
 	require.Equal(t, "Chat already exists\n", rr.Body.String())
 }
 
-func TestCreateChatInternalOnCreateChatCall(t *testing.T) {
+func TestCreateChatBasUsers(t *testing.T) {
+	t.Parallel()
+
+	h := bootstrapHandler(t)
+
+	// let's assume that test database will never has such sequence number in bigserial
+	payload := bytes.NewBuffer([]byte(`{"name":"` + mytesting.RandString() + `","users":[1,9223372036854775807,3]}`))
+	req, err := http.NewRequest("POST", "/", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Bad user list\n", rr.Body.String())
+}
+
+func TestCreateChatInternalOnStoreCall(t *testing.T) {
 	h := bootstrapHandler(t)
 
 	userOneID, err := h.store.CreateUser(context.Background(), mytesting.RandString())
@@ -624,26 +640,6 @@ func TestCreateMessage(t *testing.T) {
 	idValue := v.Get("id")
 	_, err = idValue.Int64()
 	require.NoError(t, err)
-}
-
-func TestCreateMessageMalformedJSON(t *testing.T) {
-	t.Parallel()
-
-	h := bootstrapHandler(t)
-
-	// missing opening quotation mark after colon
-	payload := bytes.NewBuffer([]byte(`{"variable":` + mytesting.RandString() + `"}`))
-	req, err := http.NewRequest("POST", "/", payload)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
-
-	handler.ServeHTTP(rr, req)
-
-	require.Equal(t, http.StatusBadRequest, rr.Code)
-	require.Equal(t, "Malformed JSON\n", rr.Body.String())
 }
 
 func TestCreateMessageNoChatField(t *testing.T) {
@@ -926,7 +922,7 @@ func TestCreateMessageAuthorNotChatMember(t *testing.T) {
 	require.Equal(t, "Author is not chat member\n", rr.Body.String())
 }
 
-func TestCreateMessageInternalOnCreateMessageCall(t *testing.T) {
+func TestCreateMessageInternalOnStoreCall(t *testing.T) {
 	t.Parallel()
 
 	h := bootstrapHandler(t)
@@ -1039,24 +1035,6 @@ func TestChatsByUserID(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestChatsByUserID_MalformedJson(t *testing.T) {
-	h := bootstrapHandler(t)
-
-	payload := bytes.NewBuffer([]byte(`{"user":"1}`))
-
-	req, err := http.NewRequest("POST", "/chats/get", payload)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.chatsByUserID)
-
-	handler.ServeHTTP(rr, req)
-
-	require.Equal(t, http.StatusBadRequest, rr.Code)
-	require.Equal(t, "Malformed JSON\n", rr.Body.String())
-}
-
 func TestChatsByUserID_NoUserField(t *testing.T) {
 	h := bootstrapHandler(t)
 
@@ -1130,7 +1108,7 @@ func TestChatsByUserID_UserNotExist(t *testing.T) {
 	require.Equal(t, "User does not exist\n", rr.Body.String())
 }
 
-func TestChatsByUserID_InternalOnChatsByUserIDCall(t *testing.T) {
+func TestChatsByUserID_InternalOnStoreCall(t *testing.T) {
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"user":1}`))
@@ -1207,4 +1185,101 @@ func TestMessagesByChatID(t *testing.T) {
 	}
 
 	require.Equal(t, expected, actual)
+}
+
+func TestMessagesByChatID_NoChatField(t *testing.T) {
+	h := bootstrapHandler(t)
+
+	payload := bytes.NewBuffer([]byte(`{}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Missing Field \"chat\"\n", rr.Body.String())
+
+}
+
+func TestMessagesByChatID_ChatFieldNotInteger(t *testing.T) {
+	h := bootstrapHandler(t)
+
+	payload := bytes.NewBuffer([]byte(`{"chat":"1"}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Field \"chat\" must be a 64-bit integer value\n", rr.Body.String())
+
+}
+
+func TestMessagesByChatID_ChatFieldInvalidChatID(t *testing.T) {
+	h := bootstrapHandler(t)
+
+	payload := bytes.NewBuffer([]byte(`{"chat":-1}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Field \"chat\" must be a valid chat id grater than zero\n", rr.Body.String())
+
+}
+
+func TestMessagesByChatID_ChatNotExist(t *testing.T) {
+	h := bootstrapHandler(t)
+
+	// let's assume that test database will never has such sequence number in bigserial
+	payload := bytes.NewBuffer([]byte(`{"chat":9223372036854775807}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Chat does not exist\n", rr.Body.String())
+
+}
+
+func TestMessagesByChatID_InternalOnStoreCall(t *testing.T) {
+	h := bootstrapHandler(t)
+
+	payload := bytes.NewBuffer([]byte(`{"chat":1}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	h.store.Close()
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+
 }
