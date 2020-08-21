@@ -20,9 +20,11 @@ var (
 	ErrUserExists        = errors.New("user already exists")
 	ErrUserNotExist      = errors.New("user does not exist")
 	ErrUserNotChatMember = errors.New("user is not chat member")
+	ErrUserHasNoChats    = errors.New("user does not have chats")
 	ErrChatExists        = errors.New("chat already exists")
 	ErrChatBadUsers      = errors.New("bad users list")
 	ErrChatNotExist      = errors.New("chat does not exist")
+	ErrChatHasNoMessages = errors.New("chat does not have messages")
 )
 
 // Store defines fields used in db interaction processes
@@ -187,6 +189,16 @@ func (s *Store) ChatsByUserID(ctx context.Context, user int64) ([]Chat, error) {
 		return nil, err
 	}
 
+	// check if user has chats
+	sql = "select 1 from chat_users where user_id = $1"
+	err = s.db.QueryRow(ctx, sql, user).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserHasNoChats
+		}
+		return nil, err
+	}
+
 	type retrievedChat struct {
 		id        int64
 		name      string
@@ -288,6 +300,16 @@ func (s *Store) MessagesByChatID(ctx context.Context, chat int64) ([]Message, er
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrChatNotExist
+		}
+		return nil, err
+	}
+
+	// check if chat has messages
+	sql = "select 1 from messages where chat_id = $1"
+	err = s.db.QueryRow(ctx, sql, chat).Scan(&i)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrChatHasNoMessages
 		}
 		return nil, err
 	}

@@ -554,6 +554,8 @@ func TestCreateChatBasUsers(t *testing.T) {
 }
 
 func TestCreateChatInternalOnStoreCall(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	userOneID, err := h.store.CreateUser(context.Background(), mytesting.RandString())
@@ -1036,6 +1038,8 @@ func TestChatsByUserID(t *testing.T) {
 }
 
 func TestChatsByUserID_NoUserField(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{}`))
@@ -1054,6 +1058,8 @@ func TestChatsByUserID_NoUserField(t *testing.T) {
 }
 
 func TestChatsByUserID_UserFieldNotInteger(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"user":"1"}`))
@@ -1072,6 +1078,8 @@ func TestChatsByUserID_UserFieldNotInteger(t *testing.T) {
 }
 
 func TestChatsByUserID_UserFieldInvalidUserID(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"user":-1}`))
@@ -1090,6 +1098,8 @@ func TestChatsByUserID_UserFieldInvalidUserID(t *testing.T) {
 }
 
 func TestChatsByUserID_UserNotExist(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	// let's assume that test database will never has such sequence number in bigserial
@@ -1108,7 +1118,33 @@ func TestChatsByUserID_UserNotExist(t *testing.T) {
 	require.Equal(t, "User does not exist\n", rr.Body.String())
 }
 
+func TestChatsByUserID_UserHasNoChats(t *testing.T) {
+	t.Parallel()
+
+	h := bootstrapHandler(t)
+
+	userId, err := h.store.CreateUser(context.Background(), mytesting.RandString())
+	require.NoError(t, err)
+
+	// let's assume that test database will never has such sequence number in bigserial
+	payload := bytes.NewBuffer([]byte(`{"user":` + strconv.FormatInt(userId, 10) + `}`))
+
+	req, err := http.NewRequest("POST", "/chats/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.chatsByUserID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "User does not have chats\n", rr.Body.String())
+}
+
 func TestChatsByUserID_InternalOnStoreCall(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"user":1}`))
@@ -1188,6 +1224,8 @@ func TestMessagesByChatID(t *testing.T) {
 }
 
 func TestMessagesByChatID_NoChatField(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{}`))
@@ -1207,6 +1245,8 @@ func TestMessagesByChatID_NoChatField(t *testing.T) {
 }
 
 func TestMessagesByChatID_ChatFieldNotInteger(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"chat":"1"}`))
@@ -1226,6 +1266,8 @@ func TestMessagesByChatID_ChatFieldNotInteger(t *testing.T) {
 }
 
 func TestMessagesByChatID_ChatFieldInvalidChatID(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"chat":-1}`))
@@ -1245,6 +1287,8 @@ func TestMessagesByChatID_ChatFieldInvalidChatID(t *testing.T) {
 }
 
 func TestMessagesByChatID_ChatNotExist(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	// let's assume that test database will never has such sequence number in bigserial
@@ -1264,7 +1308,51 @@ func TestMessagesByChatID_ChatNotExist(t *testing.T) {
 
 }
 
+func TestMessagesByChatID_ChatHasNoMessages(t *testing.T) {
+	t.Parallel()
+
+	h := bootstrapHandler(t)
+
+	// number of users
+	n := 3
+
+	// generating usernames
+	usernames := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		usernames = append(usernames, mytesting.RandString())
+	}
+
+	// creating users in database
+	userIDs := make([]int64, 0, n)
+	for _, username := range usernames {
+		id, err := h.store.CreateUser(context.Background(), username)
+		require.NoError(t, err)
+
+		userIDs = append(userIDs, id)
+	}
+
+	chatID, err := h.store.CreateChat(context.Background(), mytesting.RandString(), userIDs)
+	require.NoError(t, err)
+
+	// let's assume that test database will never has such sequence number in bigserial
+	payload := bytes.NewBuffer([]byte(`{"chat":` + strconv.FormatInt(chatID, 10) + `}`))
+
+	req, err := http.NewRequest("POST", "/messages/get", payload)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.messagesByChatID)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, "Chat does not have messages\n", rr.Body.String())
+}
+
 func TestMessagesByChatID_InternalOnStoreCall(t *testing.T) {
+	t.Parallel()
+
 	h := bootstrapHandler(t)
 
 	payload := bytes.NewBuffer([]byte(`{"chat":1}`))

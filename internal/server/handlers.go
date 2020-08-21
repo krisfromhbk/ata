@@ -333,6 +333,9 @@ func (h *handler) chatsByUserID(w http.ResponseWriter, r *http.Request) {
 		case storage.ErrUserNotExist:
 			http.Error(w, "User does not exist", http.StatusBadRequest)
 			return
+		case storage.ErrUserHasNoChats:
+			http.Error(w, "User does not have chats", http.StatusBadRequest)
+			return
 		default:
 			h.logger.Error(err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -388,6 +391,9 @@ func (h *handler) messagesByChatID(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case storage.ErrChatNotExist:
 			http.Error(w, "Chat does not exist", http.StatusBadRequest)
+			return
+		case storage.ErrChatHasNoMessages:
+			http.Error(w, "Chat does not have messages", http.StatusBadRequest)
 			return
 		default:
 			h.logger.Error(err)
