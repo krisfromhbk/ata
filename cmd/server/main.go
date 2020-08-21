@@ -12,11 +12,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("zap.NewDevelopment: %v", err)
 	}
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			log.Fatalf("logger.Sync: %v", err)
-		}
-	}()
+	defer logger.Sync()
 
 	sugar := logger.Sugar()
 	sugar.Info("Application is starting")
