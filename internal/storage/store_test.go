@@ -12,7 +12,7 @@ import (
 func bootstrap(t *testing.T) *Store {
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	s, err := NewStore(logger.Sugar(), TestConfig)
+	s, err := NewStore(context.Background(), logger.Sugar())
 	require.NoError(t, err)
 
 	return s
@@ -23,7 +23,7 @@ func TestNewStore(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	_, err = NewStore(logger.Sugar(), TestConfig)
+	_, err = NewStore(context.Background(), logger.Sugar())
 	require.NoError(t, err)
 }
 
