@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgtype"
@@ -33,26 +34,33 @@ type Store struct {
 	db     *pgxpool.Pool
 }
 
-// NewStore sets provided zap.Logger via zapadapter to pgxpool.Pool and returns instance of Store struct
-func NewStore(logger *zap.SugaredLogger, cfg Config) (*Store, error) {
-	config, err := pgxpool.ParseConfig(cfg.DSN())
-	if err != nil {
-		return nil, err
+// NewStore constructs Store instance with configured logger and extends default pgxpool.Config with options.
+// The underlying ConnConfig includes fields of pgconn.Config struct such as Host, Port, Database, etc.
+// The comment before pgconn.ParseConfig has a list of environment variables that are parsed by default.
+func NewStore(ctx context.Context, logger *zap.SugaredLogger, opts ...Option) (*Store, error) {
+	if logger == nil {
+		return nil, errors.New("no logger provided")
 	}
+
+	config, _ := pgxpool.ParseConfig("")
+	for _, o := range opts {
+		o.apply(config)
+	}
+
 	config.ConnConfig.Logger = zapadapter.NewLogger(logger.Desugar())
 
-	pool, err := pgxpool.ConnectConfig(context.Background(), config)
+	pool, err := pgxpool.ConnectConfig(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot connect using config %+v: %w", config, err)
 	}
 
 	return &Store{
 		logger: logger,
 		db:     pool,
-	}, err
+	}, nil
 }
 
-// Close closes all database connections
+// Close closes all database connections in pool
 func (s *Store) Close() {
 	s.db.Close()
 }

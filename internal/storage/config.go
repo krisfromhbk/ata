@@ -1,22 +1,22 @@
 package storage
 
-import "fmt"
+import (
+	"github.com/jackc/pgx/v4/pgxpool"
+	"time"
+)
 
-// Config defines fields used to connect to PostgreSQL
-// during development sslmode is omitted and set to "disable" by default
-// other values are omitted as well but specified as defaults by pgxpool.ParseConfig function
-type Config struct {
-	User, Password, Host string
-	Port                 uint16
-	DBName               string
+// Option alters the default configuration of the pgxpool.Config used during new Store construction
+type Option interface {
+	apply(*pgxpool.Config)
 }
 
-// DSN constructs config string in DSN format with sslmode=disable
-func (c Config) DSN() string {
-	return fmt.Sprintf("user=%s password=%s host=%s port=%d dbname=%s sslmode=disable",
-		c.User,
-		c.Password,
-		c.Host,
-		c.Port,
-		c.DBName)
+type optionFunc func(c *pgxpool.Config)
+
+func (f optionFunc) apply(c *pgxpool.Config) { f(c) }
+
+// ConnectionTimeout sets timeout for connection to be established
+func ConnectionTimeout(d time.Duration) Option {
+	return optionFunc(func(c *pgxpool.Config) {
+		c.ConnConfig.ConnectTimeout = d
+	})
 }
