@@ -4,7 +4,6 @@ ARG GO_VERSION=1.14.7
 # First stage: build the executable.
 FROM golang:${GO_VERSION}-alpine AS builder
 
-# Add Maintainer info
 LABEL maintainer="Kirill Samoilov <kreisnews@gmail.com>"
 
 ENV GO111MODULE=on
@@ -15,10 +14,8 @@ RUN mkdir /user && \
     echo 'nobody:x:65534:65534:nobody:/:' > /user/passwd && \
     echo 'nobody:x:65534:' > /user/group
 
-# Install the Certificate-Authority certificates for the app to be able to make
-# calls to HTTPS endpoints.
 # Git is required for fetching the dependencies.
-RUN apk add --no-cache ca-certificates git
+RUN apk add --no-cache git
 
 # Set the working directory
 WORKDIR /src
@@ -41,9 +38,6 @@ FROM scratch AS final
 
 # Import the user and group files from the first stage.
 COPY --from=builder /user/group /user/passwd /etc/
-
-# Import the Certificate-Authority certificates for enabling HTTPS.
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Import the compiled executable from the first stage.
 COPY --from=builder /app /app
