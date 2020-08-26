@@ -3,6 +3,7 @@ package storage
 // TODO maybe https://github.com/jackc/pgtype provides better types for current package as it includes binary encoding
 
 import (
+	"avito-trainee-assignment/internal/storage/zapadapter"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,6 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.uber.org/zap"
 	"time"
@@ -62,21 +62,38 @@ func NewStore(ctx context.Context, logger *zap.SugaredLogger, opts ...Option) (*
 
 // Close closes all database connections in pool
 func (s *Store) Close() {
+	s.logger.Info("Closing store connections")
 	s.db.Close()
 }
 
 // CreateUser creates user and returns its id.
 func (s *Store) CreateUser(ctx context.Context, username string) (int64, error) {
-	s.logger.Debugf("Creating user (%s)", username)
+	requestID, ok := zapadapter.IDFromContext(ctx)
+	logger := s.logger
+	if ok {
+		logger = s.logger.With("request_id", requestID)
+	}
+
+	logger.Debugf("Creating user (%s)", username)
+
+	// check if user exists to prevent error log during s.db.QueryRow insert call
+	var i int8
+	sql := "select 1 from users where username = $1"
+	err := s.db.QueryRow(ctx, sql, username).Scan(&i)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return 0, err
+		}
+	}
+
+	if i == 1 {
+		return 0, ErrUserExists
+	}
 
 	var id int64
-	sql := "insert into users (username, created_at) values ($1, $2) returning id"
-	err := s.db.QueryRow(ctx, sql, username, time.Now()).Scan(&id)
+	sql = "insert into users (username, created_at) values ($1, $2) returning id"
+	err = s.db.QueryRow(ctx, sql, username, time.Now()).Scan(&id)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return 0, ErrUserExists
-		}
 		return 0, err
 	}
 
