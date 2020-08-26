@@ -2,14 +2,11 @@ package server
 
 import (
 	"avito-trainee-assignment/internal/storage"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
-	"io"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,60 +25,6 @@ type handler struct {
 	logger  *zap.SugaredLogger
 	store   *storage.Store
 	parsers parsers
-}
-
-// enforcePOSTJSON is a middleware pre-processing each HTTP request
-// it checks for POST method, application/json Content-Type header and valid json body
-// it also sets blank Content-Type header to application/json
-func enforcePOSTJSON(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.Header().Set("Allow", "POST")
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-
-		// check "Content-Type" header
-		contentType := r.Header.Get("Content-Type")
-		if contentType != "" {
-			mt, _, err := mime.ParseMediaType(contentType)
-			if err != nil {
-				http.Error(w, "Malformed Content-Type header", http.StatusBadRequest)
-				return
-			}
-
-			if mt != "application/json" {
-				http.Error(w, "Content-Type header must be application/json", http.StatusUnsupportedMediaType)
-				return
-			}
-		} else {
-			r.Header.Set("Content-Type", "application/json")
-		}
-
-		// check if provided request body is valid JSON
-		var bodyBuf bytes.Buffer
-		bodyReader := io.TeeReader(r.Body, &bodyBuf)
-		body, err := ioutil.ReadAll(bodyReader)
-		if err != nil {
-			http.Error(w, "Can not read request body", http.StatusBadRequest)
-			return
-		}
-
-		if len(body) == 0 {
-			http.Error(w, "No body provided", http.StatusBadRequest)
-			return
-		}
-
-		err = fastjson.ValidateBytes(body)
-		if err != nil {
-			http.Error(w, "Malformed JSON", http.StatusBadRequest)
-			return
-		}
-
-		r.Body = ioutil.NopCloser(&bodyBuf)
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 // createUser handles HTTP requests on "/users/add" endpoint

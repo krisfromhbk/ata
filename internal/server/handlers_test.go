@@ -20,7 +20,7 @@ import (
 func bootstrapHandler(t *testing.T) *handler {
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	store, err := storage.NewStore(logger.Sugar(), storage.TestConfig)
+	store, err := storage.NewStore(context.Background(), logger.Sugar())
 	require.NoError(t, err)
 
 	h := &handler{
@@ -50,7 +50,7 @@ func TestEnforcePOSTJSON(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -66,7 +66,7 @@ func TestEnforcePOSTJSON_NotPOST(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -83,7 +83,7 @@ func TestEnforcePOSTJSON_MalformedContentType(t *testing.T) {
 	req.Header.Set("Content-Type", "1:2\n+/-")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -100,7 +100,7 @@ func TestEnforcePOSTJSON_UnsupportedContentType(t *testing.T) {
 	req.Header.Set("Content-Type", "text/plain")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -117,7 +117,7 @@ func TestEnforcePOSTJSON_BlankContentType(t *testing.T) {
 	req.Header.Set("Content-Type", "")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -133,7 +133,7 @@ func TestEnforcePOSTJSON_NoContentType(t *testing.T) {
 	//req.Header.Set("Content-Type", "")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -148,7 +148,7 @@ func TestEnforcePOSTJSON_NoBody(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -166,7 +166,7 @@ func TestEnforcePOSTJSON_MalformedJSON(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(statusOkHandler))
+	handler := enforcePostJson(http.HandlerFunc(statusOkHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -371,7 +371,7 @@ func TestCreateChatNoNameField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -390,7 +390,7 @@ func TestCreateChatNameFieldNotString(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -409,7 +409,7 @@ func TestCreateChatBlankName(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -428,7 +428,7 @@ func TestCreateChatNoUsersField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -447,7 +447,7 @@ func TestCreateChatUsersFieldNotArray(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -466,7 +466,7 @@ func TestCreateChatUsersFieldNotEachInteger(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -485,7 +485,7 @@ func TestCreateChatUsersFieldInvalidUserID(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -525,7 +525,7 @@ func TestCreateChatAlreadyExists(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -545,7 +545,7 @@ func TestCreateChatBasUsers(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	handler.ServeHTTP(rr, req)
 
@@ -582,7 +582,7 @@ func TestCreateChatInternalOnStoreCall(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createChat))
+	handler := enforcePostJson(http.HandlerFunc(h.createChat))
 
 	h.store.Close()
 
@@ -655,7 +655,7 @@ func TestCreateMessageNoChatField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -674,7 +674,7 @@ func TestCreateMessageChatFieldInvalidID(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -693,7 +693,7 @@ func TestCreateMessageChatFieldNotInteger(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -712,7 +712,7 @@ func TestCreateMessageNoAuthorField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -731,7 +731,7 @@ func TestCreateMessageAuthorFieldNotInteger(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -750,7 +750,7 @@ func TestCreateMessageAuthorFieldInvalidUserID(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -769,7 +769,7 @@ func TestCreateMessageNoTextField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -788,7 +788,7 @@ func TestCreateMessageTextFieldNotString(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -807,7 +807,7 @@ func TestCreateMessageBlankTextField(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -830,7 +830,7 @@ func TestCreateMessageChatNotExist(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -872,7 +872,7 @@ func TestCreateMessageAuthorNotExist(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -916,7 +916,7 @@ func TestCreateMessageAuthorNotChatMember(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	handler.ServeHTTP(rr, req)
 
@@ -957,7 +957,7 @@ func TestCreateMessageInternalOnStoreCall(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := enforcePOSTJSON(http.HandlerFunc(h.createMessage))
+	handler := enforcePostJson(http.HandlerFunc(h.createMessage))
 
 	h.store.Close()
 
