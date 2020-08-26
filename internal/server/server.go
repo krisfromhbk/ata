@@ -3,58 +3,83 @@ package server
 import (
 	"avito-trainee-assignment/internal/storage"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/valyala/fastjson"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 )
 
-// Server defines fields used in HTTP processing
+// Server defines fields used in HTTP processing.
 type Server struct {
-	logger     *zap.SugaredLogger
-	httpServer *http.Server
-	h          handler
+	logger        *zap.SugaredLogger
+	httpServer    *http.Server
+	afterShutdown []func()
 }
 
-// NewServer returns new Server struct with provided zap.SugaredLogger and storage.Store
-func NewServer(logger *zap.SugaredLogger, config Config, store *storage.Store) (*Server, error) {
-	srv := &Server{
-		logger:     logger,
-		httpServer: nil,
-		h: handler{
-			logger: logger,
-			store:  store,
-			parsers: parsers{
-				createChatPool:       fastjson.ParserPool{},
-				createMessagePool:    fastjson.ParserPool{},
-				chatsByUserIDPool:    fastjson.ParserPool{},
-				messagesByChatIDPool: fastjson.ParserPool{},
-			},
+// NewServer constructs a Server. See the various Options for available customizations.
+func NewServer(logger *zap.SugaredLogger, store *storage.Store, opts ...Option) (*Server, error) {
+	if logger == nil {
+		return nil, errors.New("no logger provided")
+	}
+
+	if store == nil {
+		return nil, errors.New("no store provided")
+	}
+
+	cfg := &config{httpServer: &http.Server{}}
+
+	// setting application-specific default handlers
+	h := handler{
+		logger: logger,
+		store:  store,
+		parsers: parsers{
+			createChatPool:       fastjson.ParserPool{},
+			createMessagePool:    fastjson.ParserPool{},
+			chatsByUserIDPool:    fastjson.ParserPool{},
+			messagesByChatIDPool: fastjson.ParserPool{},
 		},
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/users/add", enforcePOSTJSON(http.HandlerFunc(srv.h.createUser)))
-	mux.Handle("/chats/add", enforcePOSTJSON(http.HandlerFunc(srv.h.createChat)))
-	mux.Handle("/messages/add", enforcePOSTJSON(http.HandlerFunc(srv.h.createMessage)))
-	mux.Handle("/chats/get", enforcePOSTJSON(http.HandlerFunc(srv.h.chatsByUserID)))
-	mux.Handle("/messages/get", enforcePOSTJSON(http.HandlerFunc(srv.h.messagesByChatID)))
-
-	httpServer := &http.Server{
-		Addr:    config.Host + ":" + strconv.FormatUint(uint64(config.Port), 10),
-		Handler: mux,
+	defaultHandlers := map[string]http.Handler{
+		"/users/add":    http.HandlerFunc(h.createUser),
+		"/chats/add":    http.HandlerFunc(h.createChat),
+		"/messages/add": http.HandlerFunc(h.createMessage),
+		"/chats/get":    http.HandlerFunc(h.chatsByUserID),
+		"/messages/get": http.HandlerFunc(h.messagesByChatID),
 	}
 
-	srv.httpServer = httpServer
+	cfg.handlers = defaultHandlers
+
+	// extending given options with mandatory
+	opts = append(
+		opts,
+		applyEnforcePostJson(),
+		applyLog(logger.Desugar()),
+		registerHandlers(),
+		RegisterAfterShutdown(func() {
+			store.Close()
+		}),
+	)
+
+	// applying options
+	for _, o := range opts {
+		o.apply(cfg)
+	}
+
+	srv := &Server{
+		logger:        logger,
+		httpServer:    cfg.httpServer,
+		afterShutdown: cfg.afterShutdown,
+	}
 
 	return srv, nil
 }
 
 // Start calls ListenAndServe on http.Server instance inside Server struct
-// and implements graceful shutdown via goroutine waiting for signals
+// and implements graceful shutdown via goroutine waiting for signals.
 func (s *Server) Start() error {
 	idleConnsClosed := make(chan struct{})
 
@@ -80,9 +105,9 @@ func (s *Server) Start() error {
 
 	<-idleConnsClosed
 
-	s.logger.Info("Closing store")
-	s.h.store.Close()
-	s.logger.Info("Store is closed")
+	for _, f := range s.afterShutdown {
+		f()
+	}
 
 	return nil
 }
