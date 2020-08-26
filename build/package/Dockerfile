@@ -15,7 +15,7 @@ RUN mkdir /user && \
     echo 'nobody:x:65534:' > /user/group
 
 # Git is required for fetching the dependencies.
-RUN apk add --no-cache git
+RUN apk add --no-cache git tzdata
 
 # Set the working directory
 WORKDIR /src
@@ -46,6 +46,9 @@ COPY --from=builder /app /app
 # As we're going to run the executable as an unprivileged user, we can't bind
 # to ports below 1024.
 EXPOSE 9000
+
+ENV ZONEINFO /zoneinfo.zip
+COPY --from=builder /zoneinfo.zip /
 
 # Perform any further action as an unprivileged user.
 USER nobody:nobody
