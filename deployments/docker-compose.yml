@@ -2,8 +2,12 @@ version: '3.7'
 
 services:
   chat-server:
+    build:
+      context: ../
+      dockerfile: build/package/D
     image: local-chat-server
     environment:
+      TZ: "Europe/Moscow"
       PGHOST: "postgres"
       PGPORT: 5432
       PGDATABASE: "dev"

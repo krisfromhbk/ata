@@ -15,7 +15,7 @@ RUN mkdir /user && \
     echo 'nobody:x:65534:' > /user/group
 
 # Git is required for fetching the dependencies.
-RUN apk add --no-cache git tzdata
+RUN apk add --no-cache git
 
 # Set the working directory
 WORKDIR /src
@@ -33,25 +33,12 @@ RUN CGO_ENABLED=0 go build \
     -installsuffix 'static' \
     -o /app cmd/server/main.go
 
-# Final stage: the running container.
-FROM scratch AS final
+FROM gcr.io/distroless/base
 
-# Import the user and group files from the first stage.
 COPY --from=builder /user/group /user/passwd /etc/
 
-# Import the compiled executable from the first stage.
 COPY --from=builder /app /app
 
-# Declare the port on which the webserver will be exposed.
-# As we're going to run the executable as an unprivileged user, we can't bind
-# to ports below 1024.
-EXPOSE 9000
-
-ENV ZONEINFO /zoneinfo.zip
-COPY --from=builder /zoneinfo.zip /
-
-# Perform any further action as an unprivileged user.
 USER nobody:nobody
 
-# Run the compiled binary.
 ENTRYPOINT ["/app"]

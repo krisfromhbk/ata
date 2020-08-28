@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 // Server defines fields used in HTTP processing.
@@ -85,7 +86,7 @@ func (s *Server) Start() error {
 
 	go func() {
 		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
 		<-sigint
 
 		s.logger.Info("Shutting down HTTP server")
