@@ -31,4 +31,4 @@ jobs:
         run: go mod download
 
       - name: Build application
-        run: go build
+        run: make build
