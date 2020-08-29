@@ -13,8 +13,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v1
         with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
           dockerfile: build/package/Dockerfile
           repository: '${{ github.actor }}/chat-server'
           tag_with_ref: true
