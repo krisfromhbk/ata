@@ -2,6 +2,13 @@ name: build
 
 on:
   push:
+    paths-ignore:
+      - 'README.md'
+      - '.codecov.yml'
+      - 'LICENSE.md'
+      - 'build/package/Dockerfile'
+      - '.dockerignore'
+      - '.gitignore'
 
 jobs:
   build:
