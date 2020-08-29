@@ -24,7 +24,7 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-            restore-keys: |
+          restore-keys: |
               ${{ runner.os }}-go-
 
       - name: Download Go modules
