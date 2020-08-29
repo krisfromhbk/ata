@@ -38,7 +38,8 @@ jobs:
   test:
     needs: build
     strategy:
-      go: [ '1.14', '1.15' ]
+      matrix:
+        go: [ '1.14', '1.15' ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
