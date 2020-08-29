@@ -4,7 +4,7 @@ services:
   chat-server:
     build:
       context: ../
-      dockerfile: build/package/D
+      dockerfile: build/package/Dockerfile
     image: local-chat-server
     environment:
       TZ: "Europe/Moscow"
