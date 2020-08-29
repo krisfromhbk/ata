@@ -50,9 +50,9 @@ jobs:
         run: docker-compose -f deployments/docker-compose.yml up -d postgres
 
       - name: Set up Go
-          uses: actions/setup-go@v2
-          with:
-            go-version: ${{ matrix.go }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
 
       - name: Cache Go modules
         uses: actions/cache@v2
