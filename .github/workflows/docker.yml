@@ -17,5 +17,5 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           dockerfile: build/package/Dockerfile
-          repository: join( [ ${{ github.repository }}, "chat-server" ], "/")
+          repository: ${{ join( [ github.repository, "chat-server" ], "/") }}
           tag_with_ref: true
