@@ -67,6 +67,13 @@ jobs:
         run: go mod download
 
       - name: Test code
+        env:
+          PGHOST: "localhost"
+          PGPORT: 15432
+          PGDATABASE: "dev"
+          PGUSER: "kris"
+          PGPASSWORD: "changeme"
+          PGSSLMODE: "disable"
         run: make test
 
       - name: Upload coverage
