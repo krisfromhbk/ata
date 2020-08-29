@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -32,3 +34,40 @@ jobs:
 
       - name: Build application
         run: make build
+
+  test:
+    needs: build
+    strategy:
+      go: [ '1.14', '1.15' ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup PostgreSQL database
+        run: docker-compose -f deployments/docker-compose.yml up -d postgres
+
+      - name: Set up Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: ${{ matrix.go }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Test code
+        run: make test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+

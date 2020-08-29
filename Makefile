@@ -7,7 +7,7 @@ build:
 .PHONY: build
 
 test:
-	go test -v -failfast -coverprofile=coverage.txt $(SOURCE_FILES) -timeout=2m
+	go test -v -failfast -coverprofile=coverage.txt -covermode=atomic $(SOURCE_FILES) -timeout=2m
 .PHONY: test
 
 cover: test
