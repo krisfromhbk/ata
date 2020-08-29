@@ -17,5 +17,5 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           dockerfile: build/package/Dockerfile
-          repository: $GITHUB_REPOSITORY
+          repository: ${{ github.repository }}
           tag_with_ref: true
