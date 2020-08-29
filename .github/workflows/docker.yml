@@ -15,7 +15,6 @@ jobs:
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
           dockerfile: build/package/Dockerfile
-          repository: '${{ github.repository }}/chat-server'
+          repository: '${{ github.actor }}/chat-server'
           tag_with_ref: true
